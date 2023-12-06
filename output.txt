@@ -1,20 +1,42 @@
 Algorithm | Time Taken (seconds)
 ---------------------------------
 Width: 100 Height: 100 Obstacle Density: 10 Number Of Nodes: 50
-EBS-A*    | 0.179
-A*        | 1.91
+EBS-A*    | 0.1
+A*        | 1.294
+
 Width: 100 Height: 100 Obstacle Density: 20 Number Of Nodes: 50
-EBS-A*    | 1.137
-A*        | 1.574
+EBS-A*    | 0.517
+A*        | 1.228
+
 Width: 100 Height: 100 Obstacle Density: 30 Number Of Nodes: 50
-EBS-A*    | 1.47
-A*        | 1.544
+EBS-A*    | 0.828
+A*        | 1.1
+
 Width: 100 Height: 100 Obstacle Density: 40 Number Of Nodes: 50
-EBS-A*    | 1.019
-A*        | 1.826
+EBS-A*    | 0.59
+A*        | 1.196
+
 Width: 100 Height: 100 Obstacle Density: 50 Number Of Nodes: 50
-EBS-A*    | 1.054
-A*        | 3.524
+EBS-A*    | 0.465
+A*        | 0.889
+
 Width: 100 Height: 100 Obstacle Density: 60 Number Of Nodes: 50
-EBS-A*    | 2.072
-A*        | 3.477
+EBS-A*    | 0.601
+A*        | 0.902
+
+Width: 200 Height: 200 Obstacle Density: 120 Number Of Nodes: 120
+EBS-A*    | 1.393
+A*        | 8.753
+
+Width: 200 Height: 200 Obstacle Density: 150 Number Of Nodes: 120
+EBS-A*    | 1.092
+A*        | 8.201
+
+Width: 200 Height: 200 Obstacle Density: 180 Number Of Nodes: 120
+EBS-A*    | 1.042
+A*        | 13.734
+
+Width: 200 Height: 200 Obstacle Density: 200 Number Of Nodes: 120
+EBS-A*    | 2.373
+A*        | 12.447
+

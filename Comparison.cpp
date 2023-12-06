@@ -243,7 +243,7 @@ int main() {
             end_time2 - start_time2
         );
 
-        fout << "A*        | " << duration2.count() * 1.0 / 1000 << "\n";
+        fout << "A*        | " << duration2.count() * 1.0 / 1000 << "\n\n";
     }
 
     fout.close();
