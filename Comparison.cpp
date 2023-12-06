@@ -1,22 +1,21 @@
-#include <iostream>
-#include <vector>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
-#include <chrono>
+#include <fstream>
+#include <iostream>
 #include <queue>
 #include <set>
 #include <unordered_set>
+#include <vector>
 
 struct Node {
     int x, y;
-    double g; // Cost from start to current node
-    double h; // Heuristic cost from current node to goal
-    double f; // Total cost (g + h)
-    bool operator==(const Node& other) const {
-        return x == other.x && y == other.y;
-    }
+    double g;  // Cost from start to current node
+    double h;  // Heuristic cost from current node to goal
+    double f;  // Total cost (g + h)
+    bool operator==(const Node& other) const { return x == other.x && y == other.y; }
 };
 
 struct Hash {
@@ -27,9 +26,7 @@ struct Hash {
 };
 
 struct CompareNodes {
-    bool operator()(const Node& a, const Node& b) const {
-        return a.f > b.f;
-    }
+    bool operator()(const Node& a, const Node& b) const { return a.f > b.f; }
 };
 
 double distance(const Node& a, const Node& b) {
@@ -66,7 +63,9 @@ void smoothPath(std::vector<Node>& path) {
     path.swap(smoothedPath);
 }
 
-std::vector<std::vector<bool>> generateRandomObstacleMap(int width, int height, int obstacleDensity) {
+std::vector<std::vector<bool>> generateRandomObstacleMap(
+    int width, int height, int obstacleDensity
+) {
     std::vector<std::vector<bool>> obstacleMap(height, std::vector<bool>(width, false));
 
     for (int i = 0; i < obstacleDensity; ++i) {
@@ -80,12 +79,13 @@ std::vector<std::vector<bool>> generateRandomObstacleMap(int width, int height, 
 }
 
 bool isValidNode(const Node& node, const std::vector<std::vector<bool>>& obstacleMap) {
-    return node.x >= 0 && node.x < obstacleMap[0].size() &&
-        node.y >= 0 && node.y < obstacleMap.size() &&
-        !obstacleMap[node.y][node.x];
+    return node.x >= 0 && node.x < obstacleMap[0].size() && node.y >= 0 &&
+           node.y < obstacleMap.size() && !obstacleMap[node.y][node.x];
 }
 
-std::vector<Node> aStar(const Node& start, const Node& end, const std::vector<std::vector<bool>>& obstacleMap) {
+std::vector<Node> aStar(
+    const Node& start, const Node& end, const std::vector<std::vector<bool>>& obstacleMap
+) {
     std::vector<Node> path;
     std::set<Node, CompareNodes> openList;
     std::unordered_set<Node, Hash> closeList;
@@ -138,10 +138,13 @@ std::vector<Node> aStar(const Node& start, const Node& end, const std::vector<st
         }
     }
 
-    return path; 
+    return path;
 }
 
-std::vector<Node> ebsAStar(const Node& start, const Node& end, int numNodes, const std::vector<std::vector<bool>>& obstacleMap) {
+std::vector<Node> ebsAStar(
+    const Node& start, const Node& end, int numNodes,
+    const std::vector<std::vector<bool>>& obstacleMap
+) {
     std::vector<Node> pathS, pathE;
 
     std::unordered_set<Node, Hash> openList1, closeList1;
@@ -195,34 +198,56 @@ std::vector<Node> ebsAStar(const Node& start, const Node& end, int numNodes, con
 }
 
 int main() {
-    srand(static_cast<unsigned>(time(0))); 
+    srand(static_cast<unsigned>(time(0)));
 
-    int width = 300;
-    int height = 300;
-    int obstacleDensity = 1000;
+    std::ifstream fin("input.txt");
+    if (!fin.is_open()) {
+        std::cerr << "Unable to open input file\n";
+        return 1;
+    }
 
+    std::ofstream fout("output.txt");
+    if (!fout.is_open()) {
+        std::cerr << "Unable to open output file\n";
+        return 1;
+    }
 
-    int numNodes = 100;
-    Node start = { 0, 0 };
-    Node end = { width - 1, height - 1};
+    fout << "Algorithm | Time Taken (seconds)\n";
+    fout << "---------------------------------\n";
 
-    std::vector<std::vector<bool>> obstacleMap = generateRandomObstacleMap(width, height, obstacleDensity);
+    int width, height, obstacleDensity, numNodes;
+    while (fin >> width >> height >> obstacleDensity >> numNodes) {
+        Node start = {0, 0};
+        Node end = {width - 1, height - 1};
 
-    auto start_time = std::chrono::high_resolution_clock::now();
-    std::vector<Node> pathEBS_AStar = ebsAStar(start, end, numNodes, obstacleMap);
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+        std::vector<std::vector<bool>> obstacleMap =
+            generateRandomObstacleMap(width, height, obstacleDensity);
 
-    std::cout << "EBS-A*:\n";
-    std::cout << "Time taken: " << duration.count() * 1.0 / 1000  << " seconds\n\n";
+        fout << "Width: " << width << ' ' << "Height: " << height << ' '
+             << "Obstacle Density: " << obstacleDensity << ' '
+             << "Number Of Nodes: " << numNodes << '\n';
 
-    auto start_time2 = std::chrono::high_resolution_clock::now();
-    std::vector<Node> pathAStar = aStar(start, end, obstacleMap);
-    auto end_time2 = std::chrono::high_resolution_clock::now();
-    auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end_time2 - start_time2);
+        auto start_time1 = std::chrono::high_resolution_clock::now();
+        std::vector<Node> pathEBS_AStar = ebsAStar(start, end, numNodes, obstacleMap);
+        auto end_time1 = std::chrono::high_resolution_clock::now();
+        auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(
+            end_time1 - start_time1
+        );
 
-    std::cout << "A*:\n";
-    std::cout << "Time taken: " << duration2.count() * 1.0 / 1000 << " seconds\n\n";
+        fout << "EBS-A*    | " << duration1.count() * 1.0 / 1000 << "\n";
+
+        auto start_time2 = std::chrono::high_resolution_clock::now();
+        std::vector<Node> pathAStar = aStar(start, end, obstacleMap);
+        auto end_time2 = std::chrono::high_resolution_clock::now();
+        auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(
+            end_time2 - start_time2
+        );
+
+        fout << "A*        | " << duration2.count() * 1.0 / 1000 << "\n";
+    }
+
+    fout.close();
+    fin.close();
 
     return 0;
 }
