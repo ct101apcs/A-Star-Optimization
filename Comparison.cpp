@@ -6,6 +6,8 @@
 #include <ctime>
 #include <chrono>
 #include <queue>
+#include <set>
+#include <unordered_set>
 
 struct Node {
     int x, y;
@@ -17,8 +19,15 @@ struct Node {
     }
 };
 
+struct Hash {
+    size_t operator()(const Node& other) const {
+        std::string temp = std::to_string(other.x) + "." + std::to_string(other.y);
+        return std::hash<std::string>()(temp);
+    }
+};
+
 struct CompareNodes {
-    bool operator()(const Node& a, const Node& b) {
+    bool operator()(const Node& a, const Node& b) const {
         return a.f > b.f;
     }
 };
@@ -28,7 +37,6 @@ double distance(const Node& a, const Node& b) {
 }
 
 std::vector<Node> getNeighbors(const Node& node) {
-    // Simple grid-based neighbors (up, down, left, right)
     std::vector<Node> neighbors{
         {node.x + 1, node.y},
         {node.x - 1, node.y},
@@ -36,12 +44,10 @@ std::vector<Node> getNeighbors(const Node& node) {
         {node.x, node.y - 1}
     };
 
-    // You might need to filter out neighbors that are outside the map or blocked by obstacles.
     return neighbors;
 }
 
 void smoothPath(std::vector<Node>& path) {
-    // Simple path smoothing: remove consecutive nodes that are collinear
     if (path.size() < 3) {
         return;
     }
@@ -57,10 +63,9 @@ void smoothPath(std::vector<Node>& path) {
     }
 
     smoothedPath.push_back(path.back());
-    path = std::move(smoothedPath);
+    path.swap(smoothedPath);
 }
 
-// Function to generate a random obstacle map (for testing purposes)
 std::vector<std::vector<bool>> generateRandomObstacleMap(int width, int height, int obstacleDensity) {
     std::vector<std::vector<bool>> obstacleMap(height, std::vector<bool>(width, false));
 
@@ -74,36 +79,29 @@ std::vector<std::vector<bool>> generateRandomObstacleMap(int width, int height, 
     return obstacleMap;
 }
 
-// Function to check if a node is valid in the map
 bool isValidNode(const Node& node, const std::vector<std::vector<bool>>& obstacleMap) {
     return node.x >= 0 && node.x < obstacleMap[0].size() &&
         node.y >= 0 && node.y < obstacleMap.size() &&
         !obstacleMap[node.y][node.x];
 }
 
-
 std::vector<Node> aStar(const Node& start, const Node& end, const std::vector<std::vector<bool>>& obstacleMap) {
     std::vector<Node> path;
-    std::vector<Node> openList;
-    std::vector<Node> closeList;
+    std::set<Node, CompareNodes> openList;
+    std::unordered_set<Node, Hash> closeList;
 
-    openList.push_back(start);
+    openList.insert(start);
 
     while (!openList.empty()) {
-        // Sort openList based on f values
-        std::sort(openList.begin(), openList.end(), CompareNodes());
-
-        Node currentNode = openList.front();
-        openList.erase(openList.begin());
+        Node currentNode = *openList.begin();
+        openList.erase(*openList.begin());
 
         if (currentNode == end) {
             // Reconstruct path
             while (!(currentNode == start)) {
                 path.push_back(currentNode);
-                auto it = std::find_if(closeList.begin(), closeList.end(),
-                                       [currentNode](const Node& n) { return n == currentNode; });
+                auto it = closeList.find(currentNode);
                 if (it == closeList.end()) {
-                    // Handle an unexpected situation
                     break;
                 }
                 currentNode = *it;
@@ -112,16 +110,16 @@ std::vector<Node> aStar(const Node& start, const Node& end, const std::vector<st
             return path;
         }
 
-        closeList.push_back(currentNode);
+        closeList.insert(currentNode);
 
         auto neighbors = getNeighbors(currentNode);
         for (auto& neighbor : neighbors) {
             if (isValidNode(neighbor, obstacleMap) &&
-                std::find(closeList.begin(), closeList.end(), neighbor) == closeList.end()) {
+                closeList.find(neighbor) == closeList.end()) {
                 double tentative_g = currentNode.g + distance(currentNode, neighbor);
                 bool inOpenList = false;
 
-                for (const auto& openNode : openList) {
+                for (const Node& openNode : openList) {
                     if (openNode == neighbor) {
                         inOpenList = true;
                         break;
@@ -133,77 +131,75 @@ std::vector<Node> aStar(const Node& start, const Node& end, const std::vector<st
                     neighbor.h = distance(neighbor, end);
                     neighbor.f = neighbor.g + neighbor.h;
                     if (!inOpenList) {
-                        openList.push_back(neighbor);
+                        openList.insert(neighbor);
                     }
                 }
             }
         }
     }
 
-    return path; // Return an empty path if no path is found
+    return path; 
 }
 
-// Function to perform EBS-A* algorithm
 std::vector<Node> ebsAStar(const Node& start, const Node& end, int numNodes, const std::vector<std::vector<bool>>& obstacleMap) {
-    std::vector<Node> path;
     std::vector<Node> pathS, pathE;
-    std::vector<Node> openList1, closeList1;
-    std::vector<Node> openList2, closeList2;
 
-    openList1.push_back(start);
-    openList2.push_back(end);
+    std::unordered_set<Node, Hash> openList1, closeList1;
+    std::unordered_set<Node, Hash> openList2, closeList2;
+
+    openList1.insert(start);
+    openList2.insert(end);
 
     while (!openList1.empty() && !openList2.empty()) {
-        Node nodeS = openList1.back();
-        openList1.pop_back();
+        Node nodeS = *openList1.begin();
+        openList1.erase(*openList1.begin());
         pathS.push_back(nodeS);
 
         if (nodeS == end) {
             break;
         }
 
-        closeList1.push_back(nodeS);
+        closeList1.insert(nodeS);
 
         auto neighborsS = getNeighbors(nodeS);
         for (const auto& neighbor : neighborsS) {
             if (isValidNode(neighbor, obstacleMap) &&
-                std::find(closeList1.begin(), closeList1.end(), neighbor) == closeList1.end() &&
-                std::find(openList1.begin(), openList1.end(), neighbor) == openList1.end()) {
-                openList1.push_back(neighbor);
+                closeList1.find(neighbor) == closeList1.end() &&
+                openList1.find(neighbor) == openList1.end()) {
+                openList1.insert(neighbor);
             }
         }
 
-        Node nodeE = openList2.back();
-        openList2.pop_back();
+        Node nodeE = *openList2.begin();
+        openList2.erase(*openList2.begin());
         pathE.push_back(nodeE);
 
-        closeList2.push_back(nodeE);
+        closeList2.insert(nodeE);
 
         auto neighborsE = getNeighbors(nodeE);
         for (const auto& neighbor : neighborsE) {
             if (isValidNode(neighbor, obstacleMap) &&
-                std::find(closeList2.begin(), closeList2.end(), neighbor) == closeList2.end() &&
-                std::find(openList2.begin(), openList2.end(), neighbor) == openList2.end()) {
-                openList2.push_back(neighbor);
+                closeList2.find(neighbor) == closeList2.end() &&
+                openList2.find(neighbor) == openList2.end()) {
+                openList2.insert(neighbor);
             }
         }
     }
 
-    path = pathS;
     std::reverse(pathE.begin(), pathE.end());
-    path.insert(path.end(), pathE.begin(), pathE.end());
+    pathS.insert(pathS.end(), pathE.begin(), pathE.end());
 
-    smoothPath(path);
+    smoothPath(pathS);
 
-    return path;
+    return pathS;
 }
 
 int main() {
-    srand(static_cast<unsigned>(time(0))); // Seed for random number generation
+    srand(static_cast<unsigned>(time(0))); 
 
-    int width = 100;
-    int height = 100;
-    int obstacleDensity = 50;
+    int width = 300;
+    int height = 300;
+    int obstacleDensity = 1000;
 
 
     int numNodes = 100;
@@ -216,7 +212,7 @@ int main() {
     std::vector<Node> pathEBS_AStar = ebsAStar(start, end, numNodes, obstacleMap);
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    // Print the duration in seconds
+
     std::cout << "EBS-A*:\n";
     std::cout << "Time taken: " << duration.count() * 1.0 / 1000  << " seconds\n\n";
 
@@ -224,15 +220,9 @@ int main() {
     std::vector<Node> pathAStar = aStar(start, end, obstacleMap);
     auto end_time2 = std::chrono::high_resolution_clock::now();
     auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end_time2 - start_time2);
-    // Print the duration in seconds
+
     std::cout << "A*:\n";
     std::cout << "Time taken: " << duration2.count() * 1.0 / 1000 << " seconds\n\n";
-
-    // Print the path
-    // std::cout << "Path:\n";
-    // for (const auto& node : pathEBS_AStar) {
-    //     std::cout << "(" << node.x << ", " << node.y << ") ";
-    // }
 
     return 0;
 }
